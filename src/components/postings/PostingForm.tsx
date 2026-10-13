@@ -11,7 +11,7 @@ import {
   Undo,
   UserMultiple,
 } from '@carbon/icons-react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
+import { StateSelect } from '@/components/ui/StateSelect'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -81,6 +82,7 @@ export function PostingForm({ companyId, posting }: { companyId: string; posting
     resolver: zodResolver(postingSchema),
     defaultValues: posting ? toPostingValues(posting) : EMPTY_POSTING,
   })
+  const questionFields = useFieldArray({ control, name: 'questions', keyName: 'fieldKey' })
   const [payMin, payMax, payPeriod] = useWatch({ control, name: ['payMin', 'payMax', 'payPeriod'] })
   const payPreview =
     payMin != null && payMax != null && Number.isFinite(payMin) && Number.isFinite(payMax) && payMax >= payMin
@@ -212,6 +214,17 @@ export function PostingForm({ companyId, posting }: { companyId: string; posting
                   />
                 </FormField>
               </div>
+              <fieldset className="grid gap-2">
+                <legend className="mb-2 text-sm font-medium">Years of experience</legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(['minYoe', 'maxYoe'] as const).map((name) => <FormField key={name} id={`posting-${name}`}
+                    label={name === 'minYoe' ? 'Minimum years' : 'Maximum years'} error={errors[name]?.message}>
+                    <Input id={`posting-${name}`} type="number" min={0} max={60} step={0.5} placeholder="Not specified"
+                      aria-invalid={!!errors[name]} {...register(name, { setValueAs: toNumber })} />
+                  </FormField>)}
+                </div>
+                <p className="text-xs text-muted-foreground">Optional numeric range, separate from the experience category.</p>
+              </fieldset>
             </CardContent>
           </Card>
 
@@ -223,19 +236,16 @@ export function PostingForm({ companyId, posting }: { companyId: string; posting
               <CardDescription>Seekers filter on both, so be specific.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5">
-              <FormField id="posting-location" label="Location" error={errors.location?.message}>
-                <Input
-                  id="posting-location"
-                  placeholder="San Francisco, CA"
-                  autoComplete="off"
-                  aria-invalid={!!errors.location}
-                  aria-describedby={`posting-location-hint${errors.location ? ' posting-location-error' : ''}`}
-                  {...register('location')}
-                />
-                <p id="posting-location-hint" className="text-xs text-muted-foreground">
-                  Where the team is based. For a fully remote role, a region like “Remote (US)”.
-                </p>
-              </FormField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="posting-city" label="City" error={errors.city?.message}>
+                  <Input id="posting-city" placeholder="San Francisco" autoComplete="address-level2" aria-invalid={!!errors.city} {...register('city')} />
+                </FormField>
+                <FormField id="posting-state" label="State" error={errors.state?.message}>
+                  <Controller control={control} name="state" render={({ field }) =>
+                    <StateSelect id="posting-state" value={field.value} onChange={field.onChange} invalid={!!errors.state} />} />
+                </FormField>
+              </div>
+              <p className="text-xs text-muted-foreground">US locations. For fully remote roles, leave both blank and enable Remote-friendly.</p>
 
               <Controller
                 control={control}
@@ -383,6 +393,24 @@ export function PostingForm({ companyId, posting }: { companyId: string; posting
                 )}
               />
               {errors.skills && <p className="text-xs text-destructive">{errors.skills.message}</p>}
+            </CardContent>
+          </Card>
+          <Card className="gap-5">
+            <CardHeader><CardTitle>Application questions</CardTitle>
+              <CardDescription>Add up to 10 questions. Submitted answers keep a copy of the original question.</CardDescription></CardHeader>
+            <CardContent className="grid gap-4">
+              {questionFields.fields.map((question, index) => <div key={question.fieldKey} className="grid gap-3 border p-3">
+                <FormField id={`question-${question.id}`} label={`Question ${index + 1}`} error={errors.questions?.[index]?.prompt?.message}>
+                  <Input id={`question-${question.id}`} maxLength={500} {...register(`questions.${index}.prompt`)} />
+                </FormField>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register(`questions.${index}.required`)} /> Required</label>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => questionFields.remove(index)}>Remove question {index + 1}</Button>
+                </div>
+              </div>)}
+              {errors.questions?.message && <p role="alert" className="text-sm text-destructive">{errors.questions.message}</p>}
+              <Button type="button" variant="outline" disabled={questionFields.fields.length >= 10}
+                onClick={() => questionFields.append({ id: crypto.randomUUID(), prompt: '', required: true })}>Add question</Button>
             </CardContent>
           </Card>
         </div>

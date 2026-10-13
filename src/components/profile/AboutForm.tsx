@@ -2,6 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { citySchema, stateSchema, splitLocation, formatLocation } from '@/lib/location'
+import { StateSelect } from '@/components/ui/StateSelect'
 
 import { FormFooter } from '@/components/profile/FormFooter'
 import { ProfileSection } from '@/components/profile/ProfileSection'
@@ -18,17 +20,19 @@ const BIO_MAX = 2000
 const schema = z.object({
   fullName: z.string().trim().min(2, 'Enter your name').max(80, 'Keep it under 80 characters'),
   headline: z.string().trim().max(120, 'Keep it under 120 characters'),
-  location: z.string().trim().max(80, 'Keep it under 80 characters'),
+  city: citySchema.or(z.literal('')),
+  state: stateSchema.or(z.literal('')),
   bio: z.string().trim().max(BIO_MAX, `Keep it under ${BIO_MAX.toLocaleString('en-US')} characters`),
   skills: z.array(z.string()).max(30, 'Up to 30 skills'),
-})
+}).refine((values) => Boolean(values.city.trim()) === Boolean(values.state), { path: ['state'], message: 'Enter both city and state, or leave both blank' })
 
 type Values = z.infer<typeof schema>
 
 const toValues = (profile: Profile, seeker: SeekerProfile): Values => ({
   fullName: profile.full_name,
   headline: seeker.headline ?? '',
-  location: seeker.location ?? '',
+  city: seeker.city ?? splitLocation(seeker.location).city,
+  state: seeker.state ?? splitLocation(seeker.location).state,
   bio: seeker.bio ?? '',
   skills: seeker.skills,
 })
@@ -52,7 +56,9 @@ export function AboutForm({ profile, seeker }: { profile: Profile; seeker: Seeke
         fullName: dirtyFields.fullName ? values.fullName : undefined,
         patch: {
           headline: values.headline || null,
-          location: values.location || null,
+          location: formatLocation(values.city, values.state) || null,
+          city: values.city.trim() || null,
+          state: values.state || null,
           bio: values.bio || null,
           skills: values.skills,
         },
@@ -83,14 +89,12 @@ export function AboutForm({ profile, seeker }: { profile: Profile; seeker: Seeke
               {...register('fullName')}
             />
           </FormField>
-          <FormField id="location" label="Location" error={errors.location?.message}>
-            <Input
-              id="location"
-              autoComplete="address-level2"
-              placeholder="Brooklyn, NY"
-              aria-invalid={!!errors.location}
-              {...register('location')}
-            />
+          <FormField id="profile-city" label="City" error={errors.city?.message}>
+            <Input id="profile-city" autoComplete="address-level2" placeholder="Brooklyn" aria-invalid={!!errors.city} {...register('city')} />
+          </FormField>
+          <FormField id="profile-state" label="State" error={errors.state?.message}>
+            <Controller control={control} name="state" render={({ field }) =>
+              <StateSelect id="profile-state" value={field.value} onChange={field.onChange} invalid={!!errors.state} />} />
           </FormField>
         </div>
         <FormField id="headline" label="Headline" error={errors.headline?.message}>

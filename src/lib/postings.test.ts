@@ -19,7 +19,8 @@ import {
 const valid: PostingInput = {
   ...EMPTY_POSTING,
   title: '  Senior Frontend Engineer ',
-  location: 'San Francisco, CA',
+  city: 'San Francisco',
+  state: 'CA',
   payMin: 160_000,
   payMax: 200_000,
   description: 'You will build the product our customers use every day. '.repeat(3),
@@ -40,7 +41,7 @@ describe('postingSchema', () => {
 
   it('requires a title, location, pay and a real description', () => {
     const errors = errorsFor(EMPTY_POSTING)
-    expect(Object.keys(errors).sort()).toEqual(['description', 'location', 'payMax', 'payMin', 'title'])
+    expect(Object.keys(errors).sort()).toEqual(['description', 'payMax', 'payMin', 'title'])
     expect(errors.payMin).toBe('Required')
   })
 
@@ -90,15 +91,20 @@ describe('toPostingFields / toPostingValues', () => {
 
   it('only produces columns recruiters may write', () => {
     expect(Object.keys(toPostingFields(postingSchema.parse(valid))).sort()).toEqual([
+      'city',
       'description',
       'employment_type',
       'experience_level',
       'is_remote',
       'location',
+      'max_yoe',
+      'min_yoe',
       'pay_max',
       'pay_min',
       'pay_period',
+      'questions',
       'skills',
+      'state',
       'title',
     ])
   })

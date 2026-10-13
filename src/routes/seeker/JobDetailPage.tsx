@@ -85,6 +85,9 @@ export function JobDetailPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-1.5">
             <JobBadges job={posting} />
+            {(posting.min_yoe !== null || posting.max_yoe !== null) && <Badge variant="outline">
+              {posting.min_yoe ?? 0}–{posting.max_yoe ?? 'any'} years of experience
+            </Badge>}
           </div>
         </div>
       </header>

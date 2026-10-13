@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { citySchema, stateSchema, formatLocation, splitLocation } from '@/lib/location'
+import { questionsSchema, readQuestions } from '@/lib/questions'
 
 import { EMPLOYMENT_TYPES, EXPERIENCE_LEVELS } from '@/lib/constants'
 import type { ApplicationStatus, EmploymentType, ExperienceLevel, Job, JobStatus } from '@/lib/types'
@@ -32,7 +34,11 @@ const pay = z
 export const postingSchema = z
   .object({
     title: z.string().trim().min(3, 'Give the role a title').max(120, 'Keep the title under 120 characters'),
-    location: z.string().trim().min(2, 'Add a location').max(120, 'Keep the location under 120 characters'),
+    city: z.string(),
+    state: z.string(),
+    minYoe: z.number().min(0).max(60).nullable(),
+    maxYoe: z.number().min(0).max(60).nullable(),
+    questions: questionsSchema,
     isRemote: z.boolean(),
     payMin: pay,
     payMax: pay,
@@ -47,6 +53,16 @@ export const postingSchema = z
     skills: z.array(z.string()).max(MAX_SKILLS, `Up to ${MAX_SKILLS} skills`),
   })
   .superRefine((values, ctx) => {
+    const remoteWithoutCity = values.isRemote && !values.city.trim() && !values.state
+    if (!remoteWithoutCity) {
+      for (const [key, schema] of [['city', citySchema], ['state', stateSchema]] as const) {
+        const result = schema.safeParse(values[key])
+        if (!result.success) ctx.addIssue({ code: 'custom', path: [key], message: result.error.issues[0]!.message })
+      }
+    }
+    if (values.minYoe !== null && values.maxYoe !== null && values.maxYoe < values.minYoe) {
+      ctx.addIssue({ code: 'custom', path: ['maxYoe'], message: 'Must be at least the minimum' })
+    }
     if (values.payMax < values.payMin) {
       ctx.addIssue({ code: 'custom', path: ['payMax'], message: 'Must be at least the minimum' })
     }
@@ -73,7 +89,11 @@ export type PostingValues = z.output<typeof postingSchema>
 
 export const EMPTY_POSTING = {
   title: '',
-  location: '',
+  city: '',
+  state: '',
+  minYoe: null,
+  maxYoe: null,
+  questions: [],
   isRemote: false,
   payMin: null,
   payMax: null,
@@ -89,6 +109,11 @@ export type PostingFields = Pick<
   | 'title'
   | 'description'
   | 'location'
+  | 'city'
+  | 'state'
+  | 'min_yoe'
+  | 'max_yoe'
+  | 'questions'
   | 'is_remote'
   | 'pay_min'
   | 'pay_max'
@@ -101,7 +126,11 @@ export type PostingFields = Pick<
 export function toPostingValues(job: PostingFields): PostingValues {
   return {
     title: job.title,
-    location: job.location,
+    city: job.city ?? splitLocation(job.location).city,
+    state: job.state ?? splitLocation(job.location).state,
+    minYoe: job.min_yoe,
+    maxYoe: job.max_yoe,
+    questions: readQuestions(job.questions),
     isRemote: job.is_remote,
     payMin: job.pay_min,
     payMax: job.pay_max,
@@ -117,7 +146,12 @@ export function toPostingValues(job: PostingFields): PostingValues {
 export function toPostingFields(values: PostingValues): PostingFields {
   return {
     title: values.title.trim(),
-    location: values.location.trim(),
+    location: formatLocation(values.city, values.state) || 'Remote',
+    city: values.city.trim() || null,
+    state: values.state || null,
+    min_yoe: values.minYoe,
+    max_yoe: values.maxYoe,
+    questions: values.questions,
     is_remote: values.isRemote,
     pay_min: values.payMin,
     pay_max: values.payMax,
