@@ -35,6 +35,73 @@ Recruiters get a pipeline whose stages their candidates can see.
 
 ---
 
+## HW 6 — Round 5: Refactor the application workflow
+
+Application submission now passes through a custom server-side controller and application service, implemented as the `submit-application` Supabase Edge Function. The form and query-cache behavior remain the same. Job browsing, posting management, withdrawals, and status changes retain their existing data-access paths.
+
+### Before and after
+
+```mermaid
+flowchart LR
+  subgraph Before[Round 4]
+    UI1[ApplyDialog] --> Query1[useApply]
+    Query1 --> API1[applyToJob]
+    API1 --> REST1[Supabase generated REST API]
+    REST1 --> DB1[Database rules and triggers]
+  end
+  subgraph After[Round 5]
+    UI2[ApplyDialog] --> Query2[useApply]
+    Query2 --> API2[applyToJob]
+    API2 --> Controller[Edge Function controller]
+    Controller --> Service[Application service]
+    Service --> Repository[Caller-scoped repository]
+    Repository --> REST2[Supabase REST API]
+    REST2 --> DB2[Database rules and triggers]
+  end
+```
+
+### Responsibility changes
+
+| Layer | Responsibility after refactor |
+| --- | --- |
+| React form | Collect inputs, give immediate validation feedback, display success/errors |
+| Query hook | Run the mutation and update cached application data |
+| Frontend adapter | Invoke the function and translate its response for the existing UI |
+| Authentication adapter | Verify the user token through Supabase Auth; create a database client carrying that user's token |
+| Controller | Handle POST/OPTIONS, validate the JSON contract, and return consistent HTTP responses |
+| Application service | Check seeker role, posting availability, current questions, required answers and resume; coordinate the insert |
+| Repository | Perform typed database operations and translate database conflicts |
+| Database | Retain RLS, column grants, unique constraints, question/resume snapshots and timeline triggers |
+
+The caller's identity comes from the verified session, not a `seekerId` field in the request. The function does not use a secret/service-role client for submission. Request/question schemas are shared between React and the function to keep validation limits aligned.
+
+This is a focused refactor of one complete workflow toward our intended controller-based architecture. It does not replace the entire backend or remove database safeguards. Direct inserts remain protected by the existing database rules; the app's normal submission path now uses the controller.
+
+### Deploy and run
+
+Apply the Round 4 migrations first. Deploy the function before using the refactored frontend:
+
+```bash
+npx pnpm@10.28.0 supabase functions deploy submit-application --project-ref YOUR_PROJECT_REF --use-api
+npx pnpm@10.28.0 dev
+```
+
+Or, for the linked project, run `pnpm functions:deploy`. The configuration keeps `verify_jwt = true`; the handler also verifies the user's session. Supabase provisions the function's project URL and public API key environment. The browser continues using only `VITE_SUPABASE_URL` and its public key.
+
+For Docker/local Supabase, `pnpm db:start` now includes the Edge Runtime. Run `pnpm functions:serve` and point the frontend at the local Supabase URL/key. Keep the existing local database/seed instructions below.
+
+The function's import map pins the same Supabase client and Zod versions as the frontend. `pnpm typecheck` and `pnpm build` also typecheck the server modules; `pnpm test` includes controller, service, authentication and frontend-adapter tests.
+
+### Verification and process
+
+The refactor passed 125 tests, frontend/server TypeScript checks, production build and oxlint. Added tests cover verified identity, invalid JSON, duplicate/stale answers, required questions, resume availability, closed/missing jobs, conflicts, error responses and CORS. The adapter tests confirm the frontend calls the function and never silently falls back to direct insertion.
+
+The function was deployed to our own Supabase project. A hosted smoke test used the demo recruiter/seeker accounts and a temporary fictional posting. It verified successful submission, question/resume snapshots, recruiter visibility, the initial timeline event, duplicate prevention, invalid-token rejection, and invalid/stale-answer rejection. Temporary records were removed after testing. The original team's project and frontend deployment were not changed.
+
+AI tool: Codex. Prompt: refactor application submission into a server-side controller/service while retaining database safeguards and the existing user experience. Steps: share the request contract; introduce authentication, controller, service and repository modules; replace the frontend insert with a function invocation; add regression tests; deploy and verify the hosted workflow.
+
+Reference: [Supabase Edge Function authentication](https://supabase.com/docs/guides/functions/auth).
+
 ## HW 6 — Round 4: Build the target
 
 This local version adds the five target features below. The original live demo linked above runs the other team's version and has not been updated by this work.
@@ -57,7 +124,7 @@ The demo application accounts do **not** provide Supabase dashboard access. Use 
 4. Run `pnpm supabase login`, then `pnpm supabase link --project-ref YOUR_PROJECT_REF`.
 5. Run `pnpm supabase db push`. For a new project this applies all migrations, including `20261013000000_round4_target_functionality.sql`. For an existing project it applies pending migrations. Review the project selection before pushing.
 6. Run `pnpm db:seed --dry-run` to preview counts, then `pnpm db:seed` to create the demo accounts, jobs, sample questions, resumes, and applications.
-7. Run `pnpm dev` and open `http://localhost:5173`.
+7. For the current Round 5 version, deploy `submit-application` as described above, then run `pnpm dev` and open `http://localhost:5173`.
 
 The documented Docker/local Supabase setup below is also supported. Apply migrations **before** running this frontend: the new code expects the added columns. Regenerate database types using `pnpm db:types` after applying migrations when further schema changes are made.
 
@@ -207,7 +274,8 @@ Open [localhost:5173](http://localhost:5173) and sign in with a [demo account](#
 | `pnpm build` | Typecheck and build for production |
 | `pnpm preview` | Serve the production build |
 | `pnpm lint` | Lint with oxlint |
-| `pnpm typecheck` | Typecheck only |
+| `pnpm typecheck` | Typecheck frontend and server modules |
+| `pnpm functions:serve` / `functions:deploy` | Serve the application controller locally / deploy it to the linked project |
 | `pnpm test` / `test:watch` | Run the Vitest unit tests (once / watch) |
 | `pnpm db:start` / `db:stop` | Start or stop local Supabase (Docker) |
 | `pnpm db:reset` | Wipe the local database and re-apply migrations |
@@ -244,6 +312,7 @@ src/
     queries/       TanStack Query hooks over lib/api
     *.ts           pure, unit-tested logic: matching, feed, pipeline, postings, tracker
 supabase/
+  functions/       application controller, service, repository, and shared contract
   migrations/      schema, triggers, RLS, storage bucket
 scripts/           idempotent seed script and demo data
 ```

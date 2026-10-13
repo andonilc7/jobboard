@@ -1,3 +1,6 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
+import type { Application } from '@/lib/types'
+import type { SubmissionErrorResponse } from '../../../supabase/functions/_shared/application-contract.ts'
 import type { QuestionAnswer } from '@/lib/questions'
 import { supabase } from '@/lib/supabase'
 
@@ -15,21 +18,22 @@ export async function fetchMyApplication(jobId: string, seekerId: string) {
 
 export type ApplyInput = { jobId: string; seekerId: string; coverNote?: string; answers?: QuestionAnswer[] }
 
-/**
- * R7: apply to an open job. The database snapshots the resume on file and rejects duplicates,
- * non-seekers and jobs that aren't open.
- */
-export async function applyToJob({ jobId, seekerId, coverNote, answers = [] }: ApplyInput) {
-  const { data, error } = await supabase
-    .from('applications')
-    .insert({ job_id: jobId, seeker_id: seekerId, cover_note: coverNote?.trim() || null, answers })
-    .select()
-    .single()
+/** R7: the server controller coordinates submission; its database client still obeys RLS. */
+export async function applyToJob({ jobId, coverNote, answers = [] }: ApplyInput): Promise<Application> {
+  const { data, error } = await supabase.functions.invoke<{ application: Application }>('submit-application', {
+    body: { jobId, coverNote, answers },
+  })
   if (error) {
-    if (error.code === '23505') throw new Error("You've already applied to this job.")
+    if (error instanceof FunctionsHttpError) {
+      let body: SubmissionErrorResponse | undefined
+      try { body = await error.context.json() as SubmissionErrorResponse }
+      catch { /* Preserve the SDK error if the gateway returned a non-JSON response. */ }
+      if (body?.error?.message) throw new Error(body.error.message)
+    }
     throw new Error(error.message)
   }
-  return data
+  if (!data?.application) throw new Error("Couldn't submit your application. Please try again.")
+  return data.application
 }
 
 const MY_APPLICATION = `*,
