@@ -109,7 +109,7 @@ This local version adds the five target features below. The original live demo l
 | Target | Implemented behavior |
 | --- | --- |
 | Custom recruiter questions | Up to 10 required or optional text questions per posting. Seekers answer during application; both the recruiter and seeker can view submitted responses. Question wording is saved with the application. |
-| Pay range search | Minimum and maximum annual pay inputs; matches overlapping advertised ranges. Hourly pay is converted using 2,080 hours/year. |
+| Pay range search | Two-handle annual pay slider synchronized with minimum and maximum number inputs; matches overlapping advertised ranges. Unset bounds remain unrestricted, and the slider expands for larger typed amounts. Hourly pay is converted using 2,080 hours/year. |
 | Numeric experience search | Recruiters specify minimum/maximum years independently of existing experience categories. Seekers filter by an overlapping numeric range. |
 | Applicant table | A table alongside the existing board, with name, YOE, applied date, status, filters for each, candidate details, and the existing status-change actions. |
 | Structured locations | Separate city and US state fields for postings, seeker profile location, and search. State selection and city format are validated; city existence is not checked against a geographic directory. |

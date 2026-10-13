@@ -1,9 +1,10 @@
 import { FilterCheckbox } from '@/components/jobs/FilterCheckbox'
+import { PayRangeFilter } from '@/components/jobs/PayRangeFilter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StateSelect } from '@/components/ui/StateSelect'
-import { EXPERIENCE_LEVELS, HOURS_PER_YEAR } from '@/lib/constants'
+import { EXPERIENCE_LEVELS } from '@/lib/constants'
 import { activeFilterCount, type JobFilters } from '@/lib/job-filters'
 
 /**
@@ -26,22 +27,21 @@ export function JobFiltersPanel({
 
   return (
     <div className="grid gap-8">
-      {(['pay', 'yoe'] as const).map((kind) => <fieldset key={kind} className="grid gap-2">
-        <legend className="mb-2 meta text-muted-foreground">{kind === 'pay' ? 'Annual pay range ($)' : 'Years of experience'}</legend>
+      <PayRangeFilter minPay={filters.minPay} maxPay={filters.maxPay} onChange={onChange} idPrefix={idPrefix} />
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 meta text-muted-foreground">Years of experience</legend>
         <div className="grid grid-cols-2 gap-2">
-          {(kind === 'pay' ? ['minPay', 'maxPay'] as const : ['minYoe', 'maxYoe'] as const).map((key, index) => <div key={key} className="grid gap-1">
+          {(['minYoe', 'maxYoe'] as const).map((key, index) => <div key={key} className="grid gap-1">
             <Label htmlFor={`${idPrefix}-${key}`} className="text-xs">{index === 0 ? 'Minimum' : 'Maximum'}</Label>
-            <Input id={`${idPrefix}-${key}`} type="number" min={0} max={kind === 'pay' ? 5_000_000 : 60} step={kind === 'pay' ? 1000 : 0.5}
+            <Input id={`${idPrefix}-${key}`} type="number" min={0} max={60} step={0.5}
               value={filters[key] ?? ''} placeholder="Any" onChange={(event) => {
                 const value = event.target.value === '' ? null : Number(event.target.value)
-                if (value === null || (Number.isFinite(value) && value >= 0 && value <= (kind === 'pay' ? 5_000_000 : 60))) onChange({ [key]: value })
+                if (value === null || (Number.isFinite(value) && value >= 0 && value <= 60)) onChange({ [key]: value })
               }} />
           </div>)}
         </div>
-        <p className="text-xs text-muted-foreground">{kind === 'pay'
-          ? `Matches overlapping pay ranges. Hourly pay is annualized at ${HOURS_PER_YEAR.toLocaleString()} hours.`
-          : 'Matches overlapping experience ranges; postings without numeric requirements are excluded.'}</p>
-      </fieldset>)}
+        <p className="text-xs text-muted-foreground">Matches overlapping experience ranges; postings without numeric requirements are excluded.</p>
+      </fieldset>
       <section className="grid gap-2">
         <Label htmlFor={`${idPrefix}-city`} className="meta text-muted-foreground">City</Label>
         <Input id={`${idPrefix}-city`} value={filters.city} placeholder="San Francisco"

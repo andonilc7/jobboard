@@ -45,8 +45,12 @@ export function JobSearchPage() {
   useEffect(() => () => clearTimeout(typingTimer.current), [])
 
   /** Merges into the latest URL, so a delayed text update never undoes a newer filter change. */
-  const commit = (patch: Partial<JobFilters>) =>
-    setParams(filtersToParams({ ...parseFilters(latestParams.current), ...patch }), { replace: true })
+  const commit = (patch: Partial<JobFilters>) => {
+    const next = filtersToParams({ ...parseFilters(latestParams.current), ...patch })
+    // Rapid slider/input events can arrive before the URL effect; merge into this update immediately.
+    latestParams.current = next
+    setParams(next, { replace: true })
+  }
 
   const changeText = (patch: Partial<Text>) => {
     const next = { ...text, ...patch }
