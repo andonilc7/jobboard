@@ -1,3 +1,4 @@
+import { ApplicantsTable } from '@/components/pipeline/ApplicantsTable'
 import { useState } from 'react'
 import {
   ArrowLeft,
@@ -151,6 +152,7 @@ export function PostingApplicantsPage() {
   const all = applicants.data ?? []
   const groups = groupByStage(all)
   const active = groups.applied.length + groups.reviewing.length + groups.interviewing.length
+  const view = params.get('view') === 'table' ? 'table' : 'board'
   const stageParam = parseStage(params.get('stage'))
   // On mobile, open on the first stage with someone in it.
   const mobileStage = stageParam ?? STAGES.find((stage) => groups[stage].length > 0) ?? 'applied'
@@ -253,6 +255,11 @@ export function PostingApplicantsPage() {
         </div>
       </header>
 
+      {job.status !== 'draft' && <Tabs value={view} onValueChange={(value) => setParams((prev) => {
+        const next = new URLSearchParams(prev); next.set('view', value); return next
+      }, { replace: true })} className="mb-6">
+        <TabsList aria-label="Applicant view"><TabsTrigger value="board">Pipeline board</TabsTrigger><TabsTrigger value="table">Applicant table</TabsTrigger></TabsList>
+      </Tabs>}
       {job.status === 'draft' ? (
         <EmptyState
           icon={DocumentSketch}
@@ -264,6 +271,8 @@ export function PostingApplicantsPage() {
             </Button>
           }
         />
+      ) : view === 'table' ? (
+        <ApplicantsTable applicants={all} onOpen={openCandidate} onMove={requestMove} pendingId={pendingId} />
       ) : all.length === 0 ? (
         <EmptyState
           icon={UserMultiple}
