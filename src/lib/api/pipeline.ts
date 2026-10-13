@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { ApplicationStatus } from '@/lib/types'
 
-const APPLICANT = `id, job_id, seeker_id, status, cover_note, resume_path, created_at, updated_at,
-  candidate:profiles (full_name, seeker:seeker_profiles (headline, location, bio, skills)),
+const APPLICANT = `id, job_id, seeker_id, status, cover_note, answers, resume_path, created_at, updated_at,
+  candidate:profiles (full_name, experiences (start_date, end_date), seeker:seeker_profiles (headline, location, bio, skills)),
   events:application_events (id, from_status, to_status, changed_by, created_at)` as const
 
 /**

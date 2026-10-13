@@ -101,7 +101,7 @@ export function ApplyAction({ job }: { job: JobWithCompany }) {
         Apply now
       </Button>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        You can add a cover note on the next step.
+        Answer application questions and add an optional cover note on the next step.
       </p>
       <ApplyDialog job={job} seekerId={profile.id} open={open} onOpenChange={setOpen} />
     </>

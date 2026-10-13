@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { QuestionResponses } from '@/components/applications/QuestionResponses'
 import { ArrowLeft, ArrowRight, CircleDash, CloseOutline, Location } from '@carbon/icons-react'
 
 import { ApplicationProgress } from '@/components/applications/ApplicationProgress'
@@ -144,6 +145,8 @@ export function CandidateSheet({
           <Section id="candidate-resume" title="Resume sent">
             <SentResume path={applicant.resume_path} seekerId={applicant.seeker_id} audience="recruiter" />
           </Section>
+
+          <QuestionResponses value={applicant.answers} />
 
           <Section id="candidate-note" title="Cover note">
             {applicant.cover_note ? (

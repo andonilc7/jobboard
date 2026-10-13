@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { QuestionResponses } from '@/components/applications/QuestionResponses'
 import { ArrowUpRight } from '@carbon/icons-react'
 import { Link } from 'react-router'
 
@@ -88,6 +89,8 @@ export function ApplicationSheet({
             </h3>
             <SentResume path={application.resume_path} seekerId={seekerId} />
           </section>
+
+          <QuestionResponses value={application.answers} />
 
           {application.cover_note && (
             <section aria-labelledby="note-heading" className="space-y-2">

@@ -1,3 +1,4 @@
+import type { QuestionAnswer } from '@/lib/questions'
 import { supabase } from '@/lib/supabase'
 
 /** The seeker's application to a job, if they have one. RLS only returns their own. */
@@ -12,16 +13,16 @@ export async function fetchMyApplication(jobId: string, seekerId: string) {
   return data
 }
 
-export type ApplyInput = { jobId: string; seekerId: string; coverNote?: string }
+export type ApplyInput = { jobId: string; seekerId: string; coverNote?: string; answers?: QuestionAnswer[] }
 
 /**
  * R7: apply to an open job. The database snapshots the resume on file and rejects duplicates,
  * non-seekers and jobs that aren't open.
  */
-export async function applyToJob({ jobId, seekerId, coverNote }: ApplyInput) {
+export async function applyToJob({ jobId, seekerId, coverNote, answers = [] }: ApplyInput) {
   const { data, error } = await supabase
     .from('applications')
-    .insert({ job_id: jobId, seeker_id: seekerId, cover_note: coverNote?.trim() || null })
+    .insert({ job_id: jobId, seeker_id: seekerId, cover_note: coverNote?.trim() || null, answers })
     .select()
     .single()
   if (error) {
