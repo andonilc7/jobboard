@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { readQuestions, validateAnswers } from '@/lib/questions'
+import { COVER_NOTE_MAX, readQuestions, validateAnswers } from '@/lib/questions'
 
 import { ResumeOnFile } from '@/components/jobs/ResumeOnFile'
 import { Button } from '@/components/ui/button'
@@ -22,8 +22,6 @@ import { Textarea } from '@/components/ui/textarea'
 import type { JobWithCompany } from '@/lib/api/jobs'
 import { useApply } from '@/lib/queries/applications'
 import { useSeekerProfile } from '@/lib/queries/seekers'
-
-const COVER_NOTE_MAX = 2000
 
 const schema = z.object({
   coverNote: z.string().max(COVER_NOTE_MAX, `Keep it under ${COVER_NOTE_MAX} characters`),
