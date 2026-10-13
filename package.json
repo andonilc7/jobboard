@@ -7,19 +7,21 @@
   "scripts": {
     "dev": "vite",
     "dev:local": "VITE_SUPABASE_URL=$SUPABASE_LOCAL_URL VITE_SUPABASE_ANON_KEY=$SUPABASE_LOCAL_ANON_KEY vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc -p tsconfig.functions.json && vite build",
     "preview": "vite preview",
     "lint": "oxlint",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc -b --noEmit && tsc -p tsconfig.functions.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,realtime",
+    "db:start": "supabase start -x studio,imgproxy,logflare,vector,supavisor,mailpit,realtime",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_REF\" --schema public > src/types/database.ts",
     "db:types:local": "env -u SUPABASE_DB_PASSWORD supabase gen types typescript --local --schema public > src/types/database.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
-    "db:seed:local": "VITE_SUPABASE_URL=$SUPABASE_LOCAL_URL SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_LOCAL_SERVICE_ROLE_KEY tsx scripts/seed.ts"
+    "db:seed:local": "VITE_SUPABASE_URL=$SUPABASE_LOCAL_URL SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_LOCAL_SERVICE_ROLE_KEY tsx scripts/seed.ts",
+    "functions:serve": "supabase functions serve submit-application",
+    "functions:deploy": "supabase functions deploy submit-application --use-api"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.89.0",
