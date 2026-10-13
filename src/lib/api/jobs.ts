@@ -1,4 +1,5 @@
-import { hourlyThreshold, sanitizeLocation, toTsQuery, type JobFilters } from '@/lib/job-filters'
+import { compositeSearchFilter, filterError } from '@/lib/search-ranges'
+import { toTsQuery, type JobFilters } from '@/lib/job-filters'
 import { supabase } from '@/lib/supabase'
 
 const JOB_WITH_COMPANY = '*, company:companies (id, name, website, description)' as const
@@ -17,21 +18,10 @@ export async function searchJobs(filters: JobFilters, page: number) {
   const tsQuery = toTsQuery(filters.q)
   if (tsQuery) query = query.textSearch('search', tsQuery, { config: 'english' })
 
-  if (filters.minPay) {
-    query = query.or(
-      `and(pay_period.eq.year,pay_max.gte.${filters.minPay}),` +
-        `and(pay_period.eq.hour,pay_max.gte.${hourlyThreshold(filters.minPay)})`,
-    )
-  }
-
-  const location = sanitizeLocation(filters.location)
-  if (location && filters.remote) {
-    query = query.or(`location.ilike."*${location}*",is_remote.is.true`)
-  } else if (location) {
-    query = query.ilike('location', `%${location}%`)
-  } else if (filters.remote) {
-    query = query.eq('is_remote', true)
-  }
+  const invalid = filterError(filters)
+  if (invalid) throw new Error(invalid)
+  const composite = compositeSearchFilter(filters)
+  if (composite) query = query.or(composite)
 
   if (filters.levels.length) query = query.in('experience_level', filters.levels)
 

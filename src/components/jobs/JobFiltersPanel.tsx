@@ -1,24 +1,10 @@
-import { Location } from '@carbon/icons-react'
-
 import { FilterCheckbox } from '@/components/jobs/FilterCheckbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { StateSelect } from '@/components/ui/StateSelect'
 import { EXPERIENCE_LEVELS, HOURS_PER_YEAR } from '@/lib/constants'
-import { formatPay } from '@/lib/format'
-import { activeFilterCount, PAY_OPTIONS, type JobFilters } from '@/lib/job-filters'
-
-const ANY_PAY = 'any'
-
-const payLabel = (amount: number) =>
-  `${formatPay({ pay_min: amount, pay_max: amount, pay_period: 'year' })}+`
+import { activeFilterCount, type JobFilters } from '@/lib/job-filters'
 
 /**
  * R5: pay, location / remote and experience level. `filters.location` is the live input value;
@@ -40,51 +26,31 @@ export function JobFiltersPanel({
 
   return (
     <div className="grid gap-8">
-      <section className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-pay`} className="meta text-muted-foreground">
-          Minimum pay
-        </Label>
-        <Select
-          value={filters.minPay ? String(filters.minPay) : ANY_PAY}
-          onValueChange={(value) => onChange({ minPay: value === ANY_PAY ? null : Number(value) })}
-        >
-          <SelectTrigger id={`${idPrefix}-pay`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY_PAY}>Any pay</SelectItem>
-            {PAY_OPTIONS.map((amount) => (
-              <SelectItem key={amount} value={String(amount)}>
-                {payLabel(amount)} a year
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Hourly roles count at {HOURS_PER_YEAR.toLocaleString('en-US')} hours a year.
-        </p>
-      </section>
-
-      <section className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-location`} className="meta text-muted-foreground">
-          Location
-        </Label>
-        <div className="relative">
-          <Location className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id={`${idPrefix}-location`}
-            value={filters.location}
-            onChange={(event) => onChange({ location: event.target.value })}
-            placeholder="City or state"
-            className="pl-9"
-            autoComplete="off"
-          />
+      {(['pay', 'yoe'] as const).map((kind) => <fieldset key={kind} className="grid gap-2">
+        <legend className="mb-2 meta text-muted-foreground">{kind === 'pay' ? 'Annual pay range ($)' : 'Years of experience'}</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {(kind === 'pay' ? ['minPay', 'maxPay'] as const : ['minYoe', 'maxYoe'] as const).map((key, index) => <div key={key} className="grid gap-1">
+            <Label htmlFor={`${idPrefix}-${key}`} className="text-xs">{index === 0 ? 'Minimum' : 'Maximum'}</Label>
+            <Input id={`${idPrefix}-${key}`} type="number" min={0} max={kind === 'pay' ? 5_000_000 : 60} step={kind === 'pay' ? 1000 : 0.5}
+              value={filters[key] ?? ''} placeholder="Any" onChange={(event) => {
+                const value = event.target.value === '' ? null : Number(event.target.value)
+                if (value === null || (Number.isFinite(value) && value >= 0 && value <= (kind === 'pay' ? 5_000_000 : 60))) onChange({ [key]: value })
+              }} />
+          </div>)}
         </div>
-        <div className="-mx-2">
-          <FilterCheckbox checked={filters.remote} onCheckedChange={(remote) => onChange({ remote })}>
-            {filters.location.trim() ? 'Include remote roles' : 'Remote only'}
-          </FilterCheckbox>
-        </div>
+        <p className="text-xs text-muted-foreground">{kind === 'pay'
+          ? `Matches overlapping pay ranges. Hourly pay is annualized at ${HOURS_PER_YEAR.toLocaleString()} hours.`
+          : 'Matches overlapping experience ranges; postings without numeric requirements are excluded.'}</p>
+      </fieldset>)}
+      <section className="grid gap-2">
+        <Label htmlFor={`${idPrefix}-city`} className="meta text-muted-foreground">City</Label>
+        <Input id={`${idPrefix}-city`} value={filters.city} placeholder="San Francisco"
+          onChange={(event) => onChange({ city: event.target.value })} autoComplete="address-level2" />
+        <Label htmlFor={`${idPrefix}-state`} className="meta text-muted-foreground">State</Label>
+        <StateSelect id={`${idPrefix}-state`} value={filters.state} onChange={(state) => onChange({ state })} optional />
+        <FilterCheckbox checked={filters.remote} onCheckedChange={(remote) => onChange({ remote })}>
+          {filters.city.trim() || filters.state || filters.location ? 'Include remote roles' : 'Remote only'}
+        </FilterCheckbox>
       </section>
 
       <section className="grid gap-2">

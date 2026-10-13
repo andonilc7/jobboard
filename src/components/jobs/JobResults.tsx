@@ -5,6 +5,7 @@ import { JobCardSkeleton } from '@/components/jobs/JobCardSkeleton'
 import { EmptyState } from '@/components/layout/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { filterError } from '@/lib/search-ranges'
 import { activeFilterCount, type JobFilters } from '@/lib/job-filters'
 import { useJobSearch } from '@/lib/queries/jobs'
 
@@ -16,6 +17,9 @@ export function JobResults({ filters, onClearAll }: { filters: JobFilters; onCle
   const jobs = search.data?.pages.flatMap((page) => page.jobs) ?? []
   const total = search.data?.pages[0]?.total ?? 0
   const filtered = Boolean(filters.q) || activeFilterCount(filters) > 0
+
+  const invalid = filterError(filters)
+  if (invalid) return <p role="alert" className="mt-6 text-sm text-destructive">{invalid}</p>
 
   if (search.isPending) {
     return (

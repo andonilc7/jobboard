@@ -17,6 +17,7 @@ describe('parseFilters / filtersToParams', () => {
 
   it('round-trips every filter', () => {
     const filters = {
+      ...EMPTY_FILTERS,
       q: 'react',
       minPay: 150_000,
       location: 'New York',
@@ -41,7 +42,7 @@ describe('activeFilterCount', () => {
   it('counts filters but not the keyword', () => {
     expect(activeFilterCount({ ...EMPTY_FILTERS, q: 'react' })).toBe(0)
     expect(
-      activeFilterCount({ q: '', minPay: 80_000, location: 'Austin', remote: true, levels: ['mid', 'senior'] }),
+      activeFilterCount({ ...EMPTY_FILTERS, q: '', minPay: 80_000, location: 'Austin', remote: true, levels: ['mid', 'senior'] }),
     ).toBe(4)
   })
 })

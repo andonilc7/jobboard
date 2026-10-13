@@ -29,28 +29,36 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 /** How long typing has to pause before the keyword or location reaches the URL (and the query). */
 const TYPING_DELAY = 250
 
-type Text = Pick<JobFilters, 'q' | 'location'>
+type Text = Pick<JobFilters, 'q' | 'location' | 'city'>
 
 /** R4 keyword search + R5 filters. The URL is the source of truth, so searches are shareable. */
 export function JobSearchPage() {
   const [params, setParams] = useSearchParams()
   const filters = parseFilters(params)
+  const latestParams = useRef(params)
+  useEffect(() => { latestParams.current = params }, [params])
 
   // The text inputs update instantly and reach the URL once typing pauses.
-  const [text, setText] = useState<Text>({ q: filters.q, location: filters.location })
+  const [text, setText] = useState<Text>({ q: filters.q, location: filters.location, city: filters.city })
+  const [isTyping, setIsTyping] = useState(false)
   const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(typingTimer.current), [])
 
   /** Merges into the latest URL, so a delayed text update never undoes a newer filter change. */
   const commit = (patch: Partial<JobFilters>) =>
-    setParams((prev) => filtersToParams({ ...parseFilters(prev), ...patch }), { replace: true })
+    setParams(filtersToParams({ ...parseFilters(latestParams.current), ...patch }), { replace: true })
 
   const changeText = (patch: Partial<Text>) => {
     const next = { ...text, ...patch }
     setText(next)
+    setIsTyping(true)
     clearTimeout(typingTimer.current)
     typingTimer.current = setTimeout(
-      () => commit({ q: next.q.trim(), location: next.location.trim() }),
+      () => {
+        typingTimer.current = undefined
+        setIsTyping(false)
+        commit({ q: next.q.trim(), location: next.location.trim(), city: next.city.trim() })
+      },
       TYPING_DELAY,
     )
   }
@@ -61,30 +69,34 @@ export function JobSearchPage() {
   const [syncedKey, setSyncedKey] = useState(paramsKey)
   if (syncedKey !== paramsKey) {
     setSyncedKey(paramsKey)
-    if (filters.q !== text.q.trim() || filters.location !== text.location.trim()) {
-      setText({ q: filters.q, location: filters.location })
+    if (!isTyping && (filters.q !== text.q.trim() || filters.location !== text.location.trim() || filters.city !== text.city.trim())) {
+      setText({ q: filters.q, location: filters.location, city: filters.city })
     }
   }
 
   const onChange = (patch: Partial<JobFilters>) => {
-    const { location, ...rest } = patch
-    if (location !== undefined) changeText({ location })
+    const { location, city, ...rest } = patch
+    if (location !== undefined || city !== undefined) changeText({ ...(location !== undefined ? { location } : {}), ...(city !== undefined ? { city } : {}) })
     if (Object.keys(rest).length) commit(rest)
   }
 
   const clearFilters = () => {
     clearTimeout(typingTimer.current)
-    setText((t) => ({ ...t, location: '' }))
+    typingTimer.current = undefined
+    setIsTyping(false)
+    setText((t) => ({ ...t, location: '', city: '' }))
     commit({ ...EMPTY_FILTERS, q: text.q.trim() })
   }
 
   const clearAll = () => {
     clearTimeout(typingTimer.current)
-    setText({ q: '', location: '' })
+    typingTimer.current = undefined
+    setIsTyping(false)
+    setText({ q: '', location: '', city: '' })
     commit(EMPTY_FILTERS)
   }
 
-  const panelFilters = { ...filters, location: text.location }
+  const panelFilters = { ...filters, location: text.location, city: text.city }
   const filterCount = activeFilterCount(panelFilters)
 
   return (

@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
 import { fetchJob, fetchOpenJobs, JOBS_PAGE_SIZE, searchJobs } from '@/lib/api/jobs'
+import { filterError } from '@/lib/search-ranges'
 import type { JobFilters } from '@/lib/job-filters'
 
 export const jobKeys = {
@@ -13,6 +14,7 @@ export const jobKeys = {
 export function useJobSearch(filters: JobFilters) {
   return useInfiniteQuery({
     queryKey: jobKeys.search(filters),
+    enabled: !filterError(filters),
     queryFn: ({ pageParam }) => searchJobs(filters, pageParam),
     initialPageParam: 0,
     getNextPageParam: (last, pages) =>
