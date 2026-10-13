@@ -23,6 +23,7 @@ export function resumePdf(seeker: SeedSeeker): Buffer {
     y -= gap
   }
 
+  text('FOR TESTING ONLY - FICTIONAL RESUME', 10, 'F2', 18)
   text(seeker.fullName, 22, 'F2', 26)
   text(seeker.headline, 11)
   text(`${seeker.location}  |  ${seeker.email}`, 10, 'F1', 26)
