@@ -31,13 +31,13 @@ isOneToOne: false
     }
                   ]
                 },"applications": {
-                  Row: {
+                  Row: {"answers": Json;
                     "cover_note": string | null,"created_at": string,"id": string,"job_id": string,"resume_path": string | null,"seeker_id": string,"status": Database["public"]['Enums']["application_status"],"updated_at": string
                   }
-                  Insert: {
+                  Insert: {"answers"?: Json;
                     "cover_note"?: string | null,"created_at"?: string,"id"?: string,"job_id": string,"resume_path"?: string | null,"seeker_id": string,"status"?: Database["public"]['Enums']["application_status"],"updated_at"?: string
                   }
-                  Update: {
+                  Update: {"answers"?: Json;
                     "cover_note"?: string | null,"created_at"?: string,"id"?: string,"job_id"?: string,"resume_path"?: string | null,"seeker_id"?: string,"status"?: Database["public"]['Enums']["application_status"],"updated_at"?: string
                   }
                   Relationships: [
@@ -88,13 +88,13 @@ isOneToOne: false
     }
                   ]
                 },"jobs": {
-                  Row: {
+                  Row: {"city": string | null;"state": string | null;"min_yoe": number | null;"max_yoe": number | null;"questions": Json;
                     "company_id": string,"created_at": string,"description": string,"employment_type": Database["public"]['Enums']["employment_type"],"experience_level": Database["public"]['Enums']["experience_level"],"id": string,"is_remote": boolean,"location": string,"pay_max": number,"pay_min": number,"pay_period": Database["public"]['Enums']["pay_period"],"recruiter_id": string | null,"search": unknown,"skills": (string)[],"status": Database["public"]['Enums']["job_status"],"title": string,"updated_at": string
                   }
-                  Insert: {
+                  Insert: {"city"?: string | null;"state"?: string | null;"min_yoe"?: number | null;"max_yoe"?: number | null;"questions"?: Json;
                     "company_id"?: string,"created_at"?: string,"description": string,"employment_type"?: Database["public"]['Enums']["employment_type"],"experience_level": Database["public"]['Enums']["experience_level"],"id"?: string,"is_remote"?: boolean,"location": string,"pay_max": number,"pay_min": number,"pay_period"?: Database["public"]['Enums']["pay_period"],"recruiter_id"?: string | null,"search"?: never,"skills"?: (string)[],"status"?: Database["public"]['Enums']["job_status"],"title": string,"updated_at"?: string
                   }
-                  Update: {
+                  Update: {"city"?: string | null;"state"?: string | null;"min_yoe"?: number | null;"max_yoe"?: number | null;"questions"?: Json;
                     "company_id"?: string,"created_at"?: string,"description"?: string,"employment_type"?: Database["public"]['Enums']["employment_type"],"experience_level"?: Database["public"]['Enums']["experience_level"],"id"?: string,"is_remote"?: boolean,"location"?: string,"pay_max"?: number,"pay_min"?: number,"pay_period"?: Database["public"]['Enums']["pay_period"],"recruiter_id"?: string | null,"search"?: never,"skills"?: (string)[],"status"?: Database["public"]['Enums']["job_status"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
@@ -151,13 +151,13 @@ isOneToOne: true
     }
                   ]
                 },"seeker_profiles": {
-                  Row: {
+                  Row: {"city": string | null;"state": string | null;
                     "bio": string | null,"headline": string | null,"location": string | null,"pref_employment_types": (Database["public"]['Enums']["employment_type"])[],"pref_experience_level": Database["public"]['Enums']["experience_level"] | null,"pref_locations": (string)[],"pref_min_pay": number | null,"pref_remote": boolean,"resume_filename": string | null,"resume_path": string | null,"skills": (string)[],"updated_at": string,"user_id": string
                   }
-                  Insert: {
+                  Insert: {"city"?: string | null;"state"?: string | null;
                     "bio"?: string | null,"headline"?: string | null,"location"?: string | null,"pref_employment_types"?: (Database["public"]['Enums']["employment_type"])[],"pref_experience_level"?: Database["public"]['Enums']["experience_level"] | null,"pref_locations"?: (string)[],"pref_min_pay"?: number | null,"pref_remote"?: boolean,"resume_filename"?: string | null,"resume_path"?: string | null,"skills"?: (string)[],"updated_at"?: string,"user_id": string
                   }
-                  Update: {
+                  Update: {"city"?: string | null;"state"?: string | null;
                     "bio"?: string | null,"headline"?: string | null,"location"?: string | null,"pref_employment_types"?: (Database["public"]['Enums']["employment_type"])[],"pref_experience_level"?: Database["public"]['Enums']["experience_level"] | null,"pref_locations"?: (string)[],"pref_min_pay"?: number | null,"pref_remote"?: boolean,"resume_filename"?: string | null,"resume_path"?: string | null,"skills"?: (string)[],"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
