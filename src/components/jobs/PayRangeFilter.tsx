@@ -58,8 +58,8 @@ export function PayRangeFilter({
         />
       </Slider.Root>
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>$0</span>
-        <span>No maximum</span>
+        <span>{minPay === null ? 'No minimum' : money.format(minPay)}</span>
+        <span>{maxPay === null ? 'No maximum' : money.format(maxPay)}</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {(['minPay', 'maxPay'] as const).map((key, index) => (
