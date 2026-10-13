@@ -35,6 +35,65 @@ Recruiters get a pipeline whose stages their candidates can see.
 
 ---
 
+## HW 6 — Round 4: Build the target
+
+This local version adds the five target features below. The original live demo linked above runs the other team's version and has not been updated by this work.
+
+| Target | Implemented behavior |
+| --- | --- |
+| Custom recruiter questions | Up to 10 required or optional text questions per posting. Seekers answer during application; both the recruiter and seeker can view submitted responses. Question wording is saved with the application. |
+| Pay range search | Minimum and maximum annual pay inputs; matches overlapping advertised ranges. Hourly pay is converted using 2,080 hours/year. |
+| Numeric experience search | Recruiters specify minimum/maximum years independently of existing experience categories. Seekers filter by an overlapping numeric range. |
+| Applicant table | A table alongside the existing board, with name, YOE, applied date, status, filters for each, candidate details, and the existing status-change actions. |
+| Structured locations | Separate city and US state fields for postings, seeker profile location, and search. State selection and city format are validated; city existence is not checked against a geographic directory. |
+
+### Run this version with your own Supabase project
+
+The demo application accounts do **not** provide Supabase dashboard access. Use a new Supabase project, or obtain an invitation from the original project's owner. These changes have not been applied to the original hosted database.
+
+1. Create a Supabase project with Data API enabled, automatic table exposure disabled, automatic RLS enabled, and default Postgres. Save the generated database password. Extract this source archive and open its folder in a terminal.
+2. Install the prerequisites listed below, then run `pnpm install --frozen-lockfile`.
+3. Copy `.env.example` to `.env.local` and enter your project's URL, anon/publishable key, and `SUPABASE_SECRET_KEY` (or legacy service-role key). Keep the secret key server-only; it is used for seeding.
+4. Run `pnpm supabase login`, then `pnpm supabase link --project-ref YOUR_PROJECT_REF`.
+5. Run `pnpm supabase db push`. For a new project this applies all migrations, including `20261013000000_round4_target_functionality.sql`. For an existing project it applies pending migrations. Review the project selection before pushing.
+6. Run `pnpm db:seed --dry-run` to preview counts, then `pnpm db:seed` to create the demo accounts, jobs, sample questions, resumes, and applications.
+7. Run `pnpm dev` and open `http://localhost:5173`.
+
+The documented Docker/local Supabase setup below is also supported. Apply migrations **before** running this frontend: the new code expects the added columns. Regenerate database types using `pnpm db:types` after applying migrations when further schema changes are made.
+
+### Demo workflow
+
+1. Sign in as `recruiter@jobboard.dev` with password `jobboard-demo` on **your running version**.
+2. Create or edit a posting. Enter city/state, pay and numeric experience bounds; add one required and one optional question; publish.
+3. In a separate browser profile/private window, sign in as `seeker@jobboard.dev` with password `jobboard-demo`.
+4. Search using both pay bounds, numeric experience bounds, city and state. Open the posting, use/upload a PDF resume, answer the questions, and apply.
+5. Return to the recruiter window. Open that posting's Applicant table, filter by name/YOE/date/status, select the candidate, review answers, and change status.
+6. Refresh the seeker's application tracker to see the status and saved responses.
+
+### Data and behavior decisions
+
+- The migration backfills recognizable existing `City, ST` values. Other legacy labels are preserved. Fully remote postings may omit both city and state. This version's structured form targets US locations.
+- Existing jobs are not assigned invented numeric experience requirements. When a numeric search is active, jobs with both bounds unspecified are excluded. The seed script assigns explicit illustrative numeric ranges to demo jobs.
+- Applicant YOE comes from the union of work-history months through the current month, avoiding double-counting overlapping jobs. It is live profile information, not a value snapshotted at submission. Date filters use the browser's local time zone.
+- Submitted question responses are immutable to application users. Database validation rejects missing required answers, duplicate/missing IDs, overlong answers, and stale question wording. Editing a posting does not rewrite old applications.
+- Preference-location tags and work-history location notes remain as existing descriptive fields; the main posting/profile/search locations use structured fields.
+
+### Verification performed
+
+- TypeScript checks and production build passed.
+- 105 Vitest tests passed, including 11 added tests covering questions, numeric bounds, location validation, composed search filters, and applicant filtering/experience calculations.
+- oxlint and `git diff --check` passed.
+- All migrations applied successfully to an isolated PostgreSQL database with minimal Supabase Auth/Storage stubs, both with and without automatic table privileges. `scripts/tests/round4-database.sql` passed as authenticated seeker and recruiter roles, checking validation, snapshot preservation, status history, and cross-company isolation. This does not verify the managed Supabase Auth/Storage services themselves.
+- Browser checks used test-only Supabase responses to verify posting creation, question validation/submission, pay/experience/city/state filter composition, table filtering, candidate answers, status changes, and profile location saving. Desktop and mobile screenshots were inspected. A real Supabase end-to-end run remains to be done after a project is configured.
+
+### Round 4 process and architecture effects
+
+AI tool: Codex. The user asked to implement custom recruiter questions, pay range filtering, numeric years-of-experience filtering, an applicant table with field filters, and structured city/state entry.
+
+Steps: inspect the existing code; extend the schema and types; update posting/application/search/profile forms and data access; add the applicant table; add domain and database tests; fix issues identified by those tests and browser review; document setup and package the source.
+
+The existing React → query hooks → data-access functions → Supabase path remains. Feature development adds JSONB question/answer snapshots, structured location columns, numeric experience columns, new validation/normalization triggers, and an applicant query that includes work-history dates. Rules continue to be distributed between frontend validation and database enforcement. This records the structural changes resulting from Round 4; it does not introduce the controller/service-layer refactor proposed for Round 5.
+
 ## Features
 
 ### For job seekers
@@ -62,8 +121,11 @@ Recruiters get a pipeline whose stages their candidates can see.
 
 ## Demo accounts
 
-`pnpm db:seed` creates 8 companies, 40 jobs, 8 people and 16 applications with backdated timelines, so every screen
-has data on a fresh deploy. Try them on the [live demo](https://jobboard-eta-two.vercel.app).
+`pnpm db:seed` creates 24 companies, 160 jobs, 80 seekers, 24 recruiters, 133 work-history entries,
+80 fictional testing resumes, 480 applications and 1,272 timeline events on a fresh project.
+The main Lumen AI Frontend Engineer posting has 60 applicants. These expanded counts describe this local
+seeder; the [original live demo](https://jobboard-eta-two.vercel.app) may use an older dataset.
+Rerunning refreshes demo jobs and profiles while preserving existing applications and timelines.
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -129,7 +191,8 @@ Open [localhost:5173](http://localhost:5173) and sign in with a [demo account](#
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | App | Project URL, bare (`https://<ref>.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | App | Public anon key. Safe in the browser because RLS enforces access |
-| `SUPABASE_SERVICE_ROLE_KEY` | `pnpm db:seed` | Seeding only. **Never** prefix with `VITE_` or set it in Vercel |
+| `SUPABASE_SECRET_KEY` | `pnpm db:seed` | Server-only secret key for seeding. **Never** prefix with `VITE_` or set it in Vercel |
+| `SUPABASE_SERVICE_ROLE_KEY` | `pnpm db:seed` | Legacy alternative for seeding. **Never** prefix with `VITE_` or set it in Vercel |
 | `SUPABASE_PROJECT_REF` | `pnpm db:types` | Bare project ref, not a dashboard URL |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI | Personal access token for `link` / `db push` |
 | `SUPABASE_DB_PASSWORD` | Supabase CLI | Database password for `db push` |
